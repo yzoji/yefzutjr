@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>聊天系统｜修改密码</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto}
+body{height:100vh;overflow:hidden;background:#f5f5f7;color:#1d1d1f;transition:background 0.25s,color 0.25s}
+body.dark{background:#121214;color:#e8e8ed}
+/*自定义滚动条深色适配*/
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-thumb{background:#c1c1c1;border-radius:3px}
+body.dark ::-webkit-scrollbar-thumb{background:#44474b}
+
+/*登录弹窗*/
+.login-mask{position:fixed;inset:0;background:rgba(0,0,0,0.65);display:flex;align-items:center;justify-content:center;z-index:1000}
+.login-box{width:380px;background:#ffffff;padding:28px;border-radius:16px;box-shadow:0 8px 30px rgba(0,0,0,0.15)}
+body.dark .login-box{background:#1e1e22;box-shadow:0 8px 30px rgba(0,0,0,0.4)}
+.login-box h2{text-align:center;margin-bottom:18px;font-weight:600}
+.login-box input{width:100%;padding:12px;margin:8px 0;border:1px solid #d2d2d7;border-radius:10px;font-size:14px;background:#f8f8fa}
+body.dark .login-box input{background:#2a2a30;border-color:#383840;color:#fff}
+.login-box button{width:100%;padding:12px;background:#00b96b;color:#fff;border:none;border-radius:10px;margin-top:10px;font-size:15px;cursor:pointer;font-weight:500}
+.tip-text{font-size:12px;color:#86868b;margin-top:8px;line-height:1.4}
+
+/*主布局三栏*/
+.app{display:flex;width:100%;height:100%;display:none}
+.col1{width:220px;background:#ebebf0;display:flex;flex-direction:column}
+body.dark .col1{background:#1a1a1f}
+.col2{width:270px;background:#f2f2f7;border-right:1px solid #d8d8e0;display:flex;flex-direction:column}
+body.dark .col2{background:#16161a;border-color:#2c2c33}
+.col3{flex:1;display:flex;flex-direction:column;background:#f5f5f7}
+body.dark .col3{background:#121214}
+
+/*第一栏导航*/
+.nav-top{padding:16px 10px;text-align:center;border-bottom:1px solid #d8d8e0}
+body.dark .nav-top{border-color:#2c2c33}
+#myAvatar{width:62px;height:62px;border-radius:12px;background:#8a8a92;margin:0 auto;line-height:62px;color:#fff;font-size:24px;font-weight:bold}
+#myNickname{margin-top:8px;font-size:14px;font-weight:500}
+.nav-item{padding:13px 14px;cursor:pointer;font-size:14px;transition:background 0.2s}
+.nav-item:hover{background:#dcdce6}
+body.dark .nav-item:hover{background:#27272f}
+.nav-item.active{background:#d0d0dd}
+body.dark .nav-item.active{background:#32323f}
+
+/*会话列表*/
+.session-head{padding:12px;border-bottom:1px solid #d8d8e0;display:flex;gap:6px}
+body.dark .session-head{border-color:#2c2c33}
+.search-input{flex:1;padding:8px 10px;border-radius:8px;border:1px solid #d2d2d7;background:#fff;font-size:13px}
+body.dark .search-input{background:#232329;border-color:#383840;color:#fff}
+.session-item{padding:11px 12px;border-bottom:1px solid #e6e6ef;cursor:pointer;display:flex;gap:10px;align-items:center;position:relative;transition:background 0.2s}
+body.dark .session-item{border-color:#222229}
+.session-item:hover{background:#e8e8f2}
+body.dark .session-item:hover{background:#202027}
+.session-item.active{background:#dedee9}
+body.dark .session-item.active{background:#2b2b36}
+.session-avatar{width:42px;height:42px;border-radius:10px;background:#9a9aa8;color:#fff;text-align:center;line-height:42px;font-weight:bold}
+.session-info{flex:1}
+.session-name{font-size:14px}
+.unread-badge{position:absolute;right:10px;top:12px;background:#ff3b30;color:#fff;border-radius:12px;font-size:11px;padding:2px 7px;font-weight:bold}
+
+/*好友列表（发起私聊）*/
+.friend-item{padding:10px 12px;border-bottom:1px solid #e6e6ef;display:flex;justify-content:space-between;align-items:center}
+body.dark .friend-item{border-color:#222229}
+.friend-item button{padding:5px 9px;border:none;border-radius:7px;background:#007aff;color:#fff;cursor:pointer;font-size:12px}
+
+/*聊天区域*/
+.chat-header{height:54px;background:#ffffff;border-bottom:1px solid #d8d8e0;padding:0 18px;display:flex;align-items:center;justify-content:space-between}
+body.dark .chat-header{background:#18181d;border-color:#2c2c33;color:#fff}
+.chat-msg-wrap{flex:1;overflow-y:auto;padding:18px}
+
+/*消息气泡*/
+.msg-row{margin:16px 0;display:flex}
+.msg-row.me{justify-content:flex-end}
+.msg-avatar{width:40px;height:40px;border-radius:10px;background:#888;color:#fff;text-align:center;line-height:40px;flex-shrink:0;font-weight:bold}
+.msg-row.me .msg-avatar{order:2;margin-left:10px}
+.msg-row.other .msg-avatar{margin-right:10px}
+.bubble{max-width:58%;padding:11px 14px;border-radius:14px;position:relative;font-size:14px;line-height:1.5}
+.msg-row.other .bubble{background:#ffffff;box-shadow:0 1px 3px rgba(0,0,0,0.06)}
+body.dark .msg-row.other .bubble{background:#25252d;box-shadow:none}
+.msg-row.me .bubble{background:#00b96b;color:#ffffff}
+.msg-sender{font-size:12px;color:#74747c;margin-bottom:4px}
+body.dark .msg-sender{color:#94949f}
+.msg-time{font-size:11px;color:#86868b;margin-top:4px;text-align:right}
+.bubble img{max-width:240px;border-radius:8px}
+.bubble video{max-width:280px;border-radius:8px}
+.bubble .file-item{background:#f0f0f7;padding:7px 9px;border-radius:8px;margin:5px 0}
+body.dark .bubble .file-item{background:#30303b}
+.msg-menu{position:absolute;z-index:10;right:4px;top:-30px;background:#fff;border:1px solid #ddd;border-radius:8px;display:none;box-shadow:0 2px 10px rgba(0,0,0,0.12)}
+body.dark .msg-menu{background:#2c2c36;border-color:#444}
+.msg-menu span{display:block;padding:4px 10px;font-size:12px;cursor:pointer}
+.msg-menu span:hover{background:#efeff6}
+body.dark .msg-menu span:hover{background:#383845}
+.is-admin .bubble:hover .msg-menu{display:block}
+
+/*底部输入*/
+.chat-input-area{background:#ffffff;border-top:1px solid #d8d8e0;padding:14px}
+body.dark .chat-input-area{background:#18181d;border-color:#2c2c33}
+.tool-bar{display:flex;gap:14px;margin-bottom:10px}
+.tool-bar label{cursor:pointer;font-size:16px;padding:4px 6px}
+.tool-bar input{display:none}
+.emoji-box{display:none;background:#fff;border:1px solid #ddd;padding:10px;flex-wrap:wrap;gap:5px;max-width:340px;border-radius:10px}
+body.dark .emoji-box{background:#25252d;border-color:#40404c}
+.emoji{cursor:pointer;font-size:22px;padding:4px}
+.text-input{width:100%;min-height:92px;border:1px solid #d2d2d7;padding:10px 12px;font-size:14px;resize:none;border-radius:10px;background:#f8f8fa}
+body.dark .text-input{background:#232329;border-color:#383840;color:#fff}
+.bottom-row{display:flex;justify-content:space-between;margin-top:10px}
+#sendBtn{background:#00b96b;color:white;border:none;padding:9px 22px;border-radius:9px;cursor:pointer;font-weight:500}
+
+/*遮罩层，点击空白关闭弹窗*/
+.mask-layer{position:fixed;inset:0;background:rgba(0,0,0,0.42);z-index:1900;display:none}
+
+/*设置弹窗*/
+.setting-panel{
+    position:fixed;
+    width:420px;
+    background:#ffffff;
+    z-index:2000;
+    padding:24px;
+    border-radius:16px;
+    display:none;
+    left:50%;
+    top:50%;
+    transform:translate(-50%,-50%);
+    box-shadow:0 10px 40px rgba(0,0,0,0.18);
+    max-height:85vh;
+    overflow-y:auto;
+}
+body.dark .setting-panel{background:#1e1e24;box-shadow:0 10px 40px rgba(0,0,0,0.45)}
+.set-div{margin:14px 0;}
+.set-div input{width:100%;padding:10px;margin:5px 0;border-radius:8px;border:1px solid #d2d2d7;background:#f8f8fa}
+body.dark .set-div input{background:#2a2a31;border-color:#383840;color:#fff}
+.set-div button{padding:8px 13px;margin:4px 3px;border:none;border-radius:8px;cursor:pointer;font-size:13px}
+.btn-warning{background:#ff9500;color:#fff}
+.btn-danger{background:#ff3b30;color:#fff}
+.btn-primary{background:#007aff;color:#fff}
+.btn-success{background:#34c759;color:#fff}
+.btn-normal{background:#e5e5ea;color:#1d1d1f}
+body.dark .btn-normal{background:#32323c;color:#fff}
+
+/*独立管理员后台弹窗*/
+.admin-backend{
+    position:fixed;
+    width:540px;
+    height:600px;
+    background:#ffffff;
+    z-index:2100;
+    padding:24px;
+    border-radius:16px;
+    display:none;
+    overflow-y:auto;
+    box-shadow:0 10px 40px rgba(0,0,0,0.2);
+    left:50%;
+    top:50%;
+    transform:translate(-50%,-50%);
+}
+body.dark .admin-backend{background:#1e1e24;box-shadow:0 10px 40px rgba(0,0,0,0.45)}
+.backend-title{font-size:19px;font-weight:600;margin-bottom:18px;padding-bottom:10px;border-bottom:1px solid #e2e2ea}
+body.dark .backend-title{border-color:#33333f}
+.admin-user-item{padding:12px 0;border-bottom:1px solid #ececf2;display:flex;justify-content:space-between;align-items:center;gap:8px}
+body.dark .admin-user-item{border-color:#2b2b36}
+.deleted-tag{color:#ff3b30;font-size:12px;margin-left:6px}
+</style>
+</head>
+<body>
+<div class="mask-layer" id="maskLayer"></div>
+
+<div class="login-mask" id="loginMask">
+    <div class="login-box">
+        <h2>聊天系统登录 / 注册</h2>
+        <input type="text" id="loginName" placeholder="用户名">
+        <input type="password" id="loginPwd" placeholder="密码">
+        <input type="text" id="loginNick" placeholder="显示昵称">
+        <div class="tip-text">⚠管理员账号用户名：admin，请设置你的专属密码，其他人无法冒充管理员</div>
+        <button onclick="doLogin()">登录注册</button>
+    </div>
+</div>
+
+<div class="app" id="mainApp">
+    <div class="col1">
+        <div class="nav-top">
+            <div id="myAvatar"></div>
+            <div id="myNickname"></div>
+        </div>
+        <div class="nav-item active" onclick="switchTab('chat')">💬消息</div>
+        <div class="nav-item" onclick="switchTab('userlist')">👥全部用户(发起私聊)</div>
+        <div class="nav-item" onclick="openSetting()">⚙设置</div>
+    </div>
+
+    <div class="col2">
+        <div class="session-head">
+            <input class="search-input" id="searchInput" placeholder="搜索会话" oninput="renderSidebar()"/>
+        </div>
+        <div id="sidebarBox"></div>
+    </div>
+
+    <div class="col3">
+        <div class="chat-header">
+            <span id="chatTitle"></span>
+            <span id="chatTip"></span>
+        </div>
+        <div class="chat-msg-wrap" id="msgContainer"></div>
+        <div class="chat-input-area">
+            <div class="tool-bar">
+                <label onclick="toggleEmoji()">😊表情</label>
+                <label for="imgUpload">🖼图片</label>
+                <input id="imgUpload" type="file" accept="image/*">
+                <label for="vidUpload">🎥视频</label>
+                <input id="vidUpload" type="file" accept="video/*">
+                <label for="fileUpload">📎文件</label>
+                <input id="fileUpload" type="file">
+            </div>
+            <div class="emoji-box" id="emojiBox"></div>
+            <textarea class="text-input" id="msgTextarea" placeholder="输入消息..."></textarea>
+            <div class="bottom-row">
+                <span></span>
+                <button id="sendBtn" onclick="sendChat()">发送</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 设置弹窗 -->
+<div class="setting-panel" id="setPanel">
+    <div class="backend-title">系统设置</div>
+
+    <div class="set-div">
+        <label>修改昵称</label>
+        <input type="text" id="newNickInput" placeholder="输入新昵称">
+        <br>
+        <button class="btn-primary" onclick="changeNick()">保存昵称</button>
+    </div>
+
+    <!-- 修改密码区域，所有用户可用 -->
+    <div class="set-div">
+        <label>修改登录密码</label>
+        <input type="password" id="oldPwdInput" placeholder="输入旧密码">
+        <input type="password" id="newPwd1Input" placeholder="输入新密码">
+        <input type="password" id="newPwd2Input" placeholder="再次输入新密码">
+        <br>
+        <button class="btn-primary" onclick="changePassword()">更新密码</button>
+    </div>
+
+    <div class="set-div">
+        <label><input type="checkbox" id="darkCheck" onchange="toggleDark()"> 高级暗色模式</label>
+    </div>
+
+    <!-- 仅管理员可见：管理员后台入口 -->
+    <div class="set-div" id="adminBackendEntry" style="display:none;">
+        <button class="btn-warning" onclick="openAdminBackend()">🔐进入管理员后台</button>
+    </div>
+
+    <div class="set-div">
+        <button onclick="exportChatRecord()">📥导出聊天记录(JSON)</button>
+        <button class="btn-danger" onclick="clearAllChat()">🗑清空全部本地聊天</button>
+    </div>
+
+    <div class="set-div">
+        <button onclick="logout()">🚪退出登录</button>
+    </div>
+
+    <button class="btn-normal" onclick="closeSetPanel()">关闭设置</button>
+</div>
+
+<!-- 独立管理员后台弹窗 -->
+<div class="admin-backend" id="adminBackend">
+    <div class="backend-title">🔐管理员后台 · 用户管理</div>
+    <div id="adminBackendContent"></div>
+    <br>
+    <button class="btn-normal" onclick="closeAdminBackend()">关闭后台</button>
+</div>
+
+<script>
+const emojiList = ["😀😃😄😁😆😅😂🤣😊😇🙂🙃😉😌😍🥰😘😗😙😚😋😜🤪😝🤑🤗🤨🤓😎🥸🤩🥳😏😒🙄😮‍💨😔😕🫤😟🙁😮😯😲😳🥺😦😧😨😰😥😢😭😱😖😣😞😓😩😫🥱😴"];
+
+let appState = {
+    username:"",
+    nickname:"",
+    isAdmin:false,
+    currentSession:"group_public",
+    tab:"chat",
+    image:null,video:null,file:null,
+    darkMode:false
+}
+
+let store = {
+    userList:[],
+    sessions:[
+        {id:"group_public",type:"group",name:"公共群聊",unread:0}
+    ],
+    messages:[],
+    muted:[],
+    deletedUsers:[] //记录被管理员删除的用户名
+}
+
+//简单密码混淆
+function simpleHash(s){
+    let h=0;
+    for(let i=0;i<s.length;i++) h=((h<<5)-h)+s.charCodeAt(i);h|=0;
+    return h.toString();
+}
+
+function loadStorage(){
+    const raw = localStorage.getItem("chatStore");
+    if(raw) store = JSON.parse(raw);
+    if(!store.deletedUsers) store.deletedUsers = [];
+}
+function saveStorage(){
+    localStorage.setItem("chatStore",JSON.stringify(store));
+}
+
+//遮罩点击关闭弹窗
+document.getElementById("maskLayer").addEventListener("click",()=>{
+    closeSetPanel();
+    closeAdminBackend();
+});
+
+//表情
+function initEmoji(){
+    const box = document.getElementById("emojiBox");
+    box.innerHTML="";
+    for(let e of emojiList[0]){
+        const sp = document.createElement("span");
+        sp.className="emoji";
+        sp.innerText=e;
+        sp.onclick=()=>document.getElementById("msgTextarea").value+=e;
+        box.appendChild(sp);
+    }
+}
+function toggleEmoji(){
+    const eb = document.getElementById("emojiBox");
+    eb.style.display = eb.style.display==="flex"?"none":"flex";
+}
+
+//文件上传
+document.querySelector("#imgUpload").addEventListener("change",e=>{
+    const f=e.target.files[0];if(!f)return;
+    const r=new FileReader();r.onload=ev=>appState.image=ev.target.result;r.readAsDataURL(f);
+})
+document.querySelector("#vidUpload").addEventListener("change",e=>{
+    const f=e.target.files[0];if(!f)return;
+    const r=new FileReader();r.onload=ev=>appState.video=ev.target.result;r.readAsDataURL(f);
+})
+document.querySelector("#fileUpload").addEventListener("change",e=>{
+    const f=e.target.files[0];if(!f)return;
+    const r=new FileReader();r.onload=ev=>appState.file={name:f.name,size:f.size,data:ev.target.result};r.readAsDataURL(f);
+})
+
+//登录注册
+function doLogin(){
+    const un = document.getElementById("loginName").value.trim();
+    const pw = document.getElementById("loginPwd").value.trim();
+    const nick = document.getElementById("loginNick").value.trim()||un;
+    if(!un||!pw){alert("用户名和密码不能为空");return;}
+
+    //被删除用户禁止登录
+    if(store.deletedUsers.includes(un)){
+        alert("该账号已被管理员删除，禁止登录");
+        return;
+    }
+
+    const pwHash = simpleHash(pw);
+    let user = store.userList.find(x=>x.name===un);
+    if(user){
+        if(user.pwd !== pwHash){alert("密码错误！");return;}
+    }else{
+        user = {
+            name:un,
+            pwd:pwHash,
+            nick:nick,
+            isAdmin: (un === "admin")
+        }
+        store.userList.push(user);
+        saveStorage();
+    }
+    appState.username = user.name;
+    appState.nickname = user.nick;
+    appState.isAdmin = user.isAdmin;
+
+    document.getElementById("loginMask").style.display="none";
+    document.getElementById("mainApp").style.display="flex";
+    document.getElementById("myAvatar").innerText = appState.nickname.slice(0,2);
+    document.getElementById("myNickname").innerText = appState.nickname;
+    initEmoji();
+    renderSidebar();
+    renderChat();
+}
+
+//切换tab
+function switchTab(tabName){
+    appState.tab = tabName;
+    document.querySelectorAll(".nav-item").forEach(el=>el.classList.remove("active"));
+    event.target.classList.add("active");
+    renderSidebar();
+}
+
+//创建私聊会话，过滤已删除用户
+function createPrivateSession(targetUserName){
+    const me = appState.username;
+    if(targetUserName===me){return;}
+    if(store.deletedUsers.includes(targetUserName)){
+        alert("该用户已被删除，无法发起私聊");
+        return;
+    }
+    const arr = [me,targetUserName].sort();
+    const sid = "private_"+arr[0]+"_"+arr[1];
+    let ses = store.sessions.find(s=>s.id===sid);
+    if(!ses){
+        ses = {
+            id:sid,
+            type:"private",
+            name:"私聊-"+targetUserName,
+            peer:targetUserName,
+            unread:0
+        }
+        store.sessions.push(ses);
+        saveStorage();
+    }
+    appState.currentSession = sid;
+    ses.unread=0;
+    renderSidebar();
+    renderChat();
+}
+
+//渲染侧边栏：普通用户看不到deletedUsers里面的账号
+function renderSidebar(){
+    const box = document.getElementById("sidebarBox");
+    box.innerHTML="";
+    if(appState.tab==="chat"){
+        store.sessions.forEach(s=>{
+            const div = document.createElement("div");
+            div.className="session-item"+(appState.currentSession===s.id?" active":"");
+            div.onclick=()=>{
+                appState.currentSession=s.id;
+                s.unread=0;saveStorage();
+                renderSidebar();renderChat();
+            }
+            div.innerHTML=`
+                <div class="session-avatar">${s.name.slice(0,2)}</div>
+                <div class="session-info">
+                    <div class="session-name">${escapeHtml(s.name)}</div>
+                </div>
+                ${s.unread>0?`<span class="unread-badge">${s.unread}</span>`:""}
+            `;
+            box.appendChild(div);
+        })
+    }else if(appState.tab==="userlist"){
+        //普通用户列表过滤被删除用户
+        const visibleUsers = store.userList.filter(u=>!store.deletedUsers.includes(u.name));
+        visibleUsers.forEach(u=>{
+            if(u.name===appState.username) return;
+            const div = document.createElement("div");
+            div.className="friend-item";
+            div.innerHTML=`
+                <span>${escapeHtml(u.nick)}(${u.name})</span>
+                <button onclick="createPrivateSession('${u.name}')">发起私聊</button>
+            `
+            box.appendChild(div);
+        })
+    }
+}
+
+//渲染聊天窗口
+function renderChat(){
+    const container = document.getElementById("msgContainer");
+    container.innerHTML="";
+    const sid = appState.currentSession;
+    const sesInfo = store.sessions.find(s=>s.id===sid);
+    document.getElementById("chatTitle").innerText = sesInfo?.name||"";
+    const msgs = store.messages.filter(m=>m.sessionId===sid);
+    msgs.forEach(m=>{
+        const isMe = m.sender === appState.username;
+        const row = document.createElement("div");
+        row.className = "msg-row "+(isMe?"me":"other");
+        row.innerHTML=`
+        <div class="msg-avatar">${m.senderNick.slice(0,2)}</div>
+        <div class="bubble ${appState.isAdmin?'is-admin':''}">
+            ${!isMe?`<div class="msg-sender">${escapeHtml(m.senderNick)}</div>`:""}
+            ${m.text?`<div>${escapeHtml(m.text)}</div>`:""}
+            ${m.img?`<img src="${m.img}">`:""}
+            ${m.video?`<video controls src="${m.video}"></video>`:""}
+            ${m.file?`<div class="file-item">📎${m.file.name}</div>`:""}
+            <div class="msg-time">${m.time}</div>
+            ${appState.isAdmin?`
+            <div class="msg-menu">
+                <span onclick="adminDelMsg(${m.id})">删除消息</span>
+            </div>`:""}
+        </div>
+        `;
+        container.appendChild(row);
+    })
+    container.scrollTop = container.scrollHeight;
+}
+
+//发送消息
+function sendChat(){
+    if(store.muted.includes(appState.username)){alert("你已被禁言，不能发送消息");return;}
+    const txt = document.getElementById("msgTextarea").value.trim();
+    if(!txt&&!appState.image&&!appState.video&&!appState.file){alert("请输入内容或选择媒体");return;}
+    const newMsg = {
+        id:Date.now(),
+        sessionId:appState.currentSession,
+        sender:appState.username,
+        senderNick:appState.nickname,
+        text:txt,
+        img:appState.image,
+        video:appState.video,
+        file:appState.file,
+        time:new Date().toLocaleTimeString()
+    }
+    store.messages.push(newMsg);
+    document.getElementById("msgTextarea").value="";
+    document.querySelector("#imgUpload").value="";
+    document.querySelector("#vidUpload").value="";
+    document.querySelector("#fileUpload").value="";
+    appState.image=null;appState.video=null;appState.file=null;
+    saveStorage();
+    renderChat();
+}
+
+//管理员删除消息
+function adminDelMsg(mid){
+    store.messages = store.messages.filter(x=>x.id!==mid);
+    saveStorage();renderChat();
+}
+
+// ========= 设置面板功能 =========
+function openSetting(){
+    document.getElementById("maskLayer").style.display="block";
+    document.getElementById("setPanel").style.display="block";
+    document.getElementById("newNickInput").value = appState.nickname;
+    //清空密码输入框
+    document.getElementById("oldPwdInput").value="";
+    document.getElementById("newPwd1Input").value="";
+    document.getElementById("newPwd2Input").value="";
+    document.getElementById("adminBackendEntry").style.display = appState.isAdmin ? "block" : "none";
+}
+function closeSetPanel(){
+    document.getElementById("setPanel").style.display="none";
+    document.getElementById("maskLayer").style.display="none";
+}
+
+//修改昵称
+function changeNick(){
+    const newNick = document.getElementById("newNickInput").value.trim();
+    if(!newNick){alert("昵称不能为空");return;}
+    appState.nickname = newNick;
+    const userObj = store.userList.find(u=>u.name===appState.username);
+    userObj.nick = newNick;
+    saveStorage();
+    document.getElementById("myNickname").innerText = newNick;
+    document.getElementById("myAvatar").innerText = newNick.slice(0,2);
+    alert("昵称修改成功");
+}
+
+/**
+ * 所有用户修改自己密码
+ */
+function changePassword(){
+    const oldPwd = document.getElementById("oldPwdInput").value.trim();
+    const p1 = document.getElementById("newPwd1Input").value.trim();
+    const p2 = document.getElementById("newPwd2Input").value.trim();
+    if(!oldPwd||!p1||!p2){
+        alert("旧密码、新密码、确认密码都不能为空");
+        return;
+    }
+    if(p1!==p2){
+        alert("两次输入新密码不一致！");
+        return;
+    }
+    if(p1.length<3){
+        alert("新密码至少3位");
+        return;
+    }
+    const userObj = store.userList.find(u=>u.name === appState.username);
+    const oldHash = simpleHash(oldPwd);
+    if(userObj.pwd !== oldHash){
+        alert("旧密码错误，无法修改！");
+        return;
+    }
+    userObj.pwd = simpleHash(p1);
+    saveStorage();
+    alert("密码修改成功，请记住新密码！");
+    //清空输入
+    document.getElementById("oldPwdInput").value="";
+    document.getElementById("newPwd1Input").value="";
+    document.getElementById("newPwd2Input").value="";
+}
+
+//导出聊天记录
+function exportChatRecord(){
+    const dataStr = JSON.stringify(store,null,2);
+    const blob = new Blob([dataStr],{type:"application/json"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href=url;
+    a.download="聊天记录_"+Date.now()+".json";
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+//清空全部聊天记录
+function clearAllChat(){
+    if(!confirm("确认清空全部聊天消息？此操作不可恢复！")) return;
+    store.messages = [];
+    saveStorage();
+    renderChat();
+    alert("已清空全部聊天记录");
+}
+
+function toggleDark(){
+    appState.darkMode = document.getElementById("darkCheck").checked;
+    document.body.classList.toggle("dark",appState.darkMode);
+}
+
+// ==========独立管理员后台==========
+function openAdminBackend(){
+    if(!appState.isAdmin){alert("权限不足，仅管理员可访问后台");return;}
+    closeSetPanel();
+    document.getElementById("maskLayer").style.display="block";
+    document.getElementById("adminBackend").style.display="block";
+    renderAdminBackend();
+}
+
+function closeAdminBackend(){
+    document.getElementById("adminBackend").style.display="none";
+    document.getElementById("maskLayer").style.display="none";
+}
+
+//管理员后台：管理员依然可以看到全部，包含已删除标记
+function renderAdminBackend(){
+    const cont = document.getElementById("adminBackendContent");
+    cont.innerHTML="";
+    store.userList.forEach(u=>{
+        const div = document.createElement("div");
+        div.className="admin-user-item";
+        const ismute = store.muted.includes(u.name);
+        const isDel = store.deletedUsers.includes(u.name);
+
+        let btnGroup = "";
+        if(u.name==="admin"){
+            btnGroup = "<span style='color:#888'>不可删除管理员账号</span>";
+        }else{
+            if(isDel){
+                //已经删除，显示恢复按钮
+                btnGroup = `<button class="btn-success" onclick="restoreUser('${u.name}')">恢复用户</button>`;
+            }else{
+                btnGroup = `<button class="btn-danger" onclick="deleteUser('${u.name}')">删除用户</button>`;
+            }
+        }
+
+        div.innerHTML=`
+            <span>${escapeHtml(u.nick)} | ${u.name} ${u.isAdmin?"【管理员】":""} ${isDel?"<span class='deleted-tag'>已删除</span>":""}</span>
+            <div>
+                <button onclick="${ismute?'unmute(\''+u.name+'\')':'mute(\''+u.name+'\')'}">${ismute?"解除禁言":"禁言"}</button>
+                ${btnGroup}
+            </div>
+        `;
+        cont.appendChild(div);
+    })
+}
+
+//管理员删除用户：加入deletedUsers数组，其他用户列表过滤掉
+function deleteUser(username){
+    if(username==="admin"){alert("不能删除管理员admin账号");return;}
+    if(store.deletedUsers.includes(username)){
+        alert("该用户已经被删除");
+        return;
+    }
+    if(!confirm(`确认删除用户【${username}】，其他用户将看不到该账号！`)) return;
+
+    store.deletedUsers.push(username);
+    //同时解除禁言
+    store.muted = store.muted.filter(m=>m!==username);
+    saveStorage();
+    renderAdminBackend();
+    renderSidebar();
+}
+
+//恢复被删除用户
+function restoreUser(username){
+    if(!store.deletedUsers.includes(username)){
+        alert("该用户没有被删除，无需恢复");
+        return;
+    }
+    if(!confirm(`确认恢复用户【${username}】，恢复后账号可以正常登录！`)) return;
+    //从删除列表移除
+    store.deletedUsers = store.deletedUsers.filter(name=>name!==username);
+    saveStorage();
+    renderAdminBackend();
+    renderSidebar();
+    alert("用户恢复成功！");
+}
+
+function mute(un){
+    if(!store.muted.includes(un)) store.muted.push(un);
+    saveStorage();renderAdminBackend();
+}
+function unmute(un){
+    store.muted = store.muted.filter(x=>x!==un);
+    saveStorage();renderAdminBackend();
+}
+
+//退出登录
+function logout(){
+    appState={username:"",nickname:"",isAdmin:false,currentSession:"group_public",tab:"chat",image:null,video:null,file:null,darkMode:false};
+    document.getElementById("mainApp").style.display="none";
+    document.getElementById("loginMask").style.display="flex";
+    closeAdminBackend();
+    closeSetPanel();
+}
+
+function escapeHtml(s){
+    return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+loadStorage();
+</script>
+</body>
+</html>
